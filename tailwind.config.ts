@@ -11,6 +11,17 @@ export default {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        metal: {
+          blue: "#00A3FF",
+          yellow: "#FFB800",
+          charcoal: "#0A0A0A",
+        },
+      },
+      backgroundImage: {
+        'industrial-grid': "radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px)",
+      },
+      backgroundSize: {
+        'grid-sm': '24px 24px',
       },
     },
   },
