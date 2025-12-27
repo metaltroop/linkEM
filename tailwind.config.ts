@@ -23,6 +23,15 @@ export default {
       backgroundSize: {
         'grid-sm': '24px 24px',
       },
+      keyframes: {
+        scan: {
+          '0%': { transform: 'translateY(0)' },
+          '100%': { transform: 'translateY(400px)' },
+        },
+      },
+      animation: {
+        scan: 'scan 3s linear infinite',
+      },
     },
   },
   plugins: [],

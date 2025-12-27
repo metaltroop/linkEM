@@ -68,12 +68,12 @@ export default function HomeClient({ initialLinks }: { initialLinks: Link[] }) {
                     </div>
 
                     <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-white mb-4 group-hover:tracking-normal transition-all duration-500">
-                        METALTR<span className="text-metal-yellow">OOP</span>
+                        Link<span className="text-metal-yellow">EM</span>
                     </h1>
                     <div className="flex items-center justify-center gap-4">
                         <div className="h-px w-8 bg-gradient-to-r from-transparent to-white/20" />
                         <p className="text-white/40 font-mono text-xs tracking-[0.4em] uppercase">
-                            Interface // Protocol 11.X
+                            Links of my projects 
                         </p>
                         <div className="h-px w-8 bg-gradient-to-l from-transparent to-white/20" />
                     </div>

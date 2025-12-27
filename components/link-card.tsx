@@ -68,7 +68,13 @@ export const LinkCard = ({ title, url, iconUrl, delay = 0 }: LinkCardProps) => {
                     <div className="flex flex-col items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                         <span className="text-[9px] font-mono font-bold text-metal-blue uppercase tracking-[0.2em]">Live Channel</span>
                         <p className="text-[9px] font-mono text-white/40 truncate w-full px-4 lowercase tracking-tighter">
-                            {new URL(url).hostname}
+                            {(() => {
+                                try {
+                                    return new URL(url).hostname;
+                                } catch {
+                                    return url || 'pending_protocol';
+                                }
+                            })()}
                         </p>
                     </div>
                 </div>

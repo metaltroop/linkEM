@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { IndustrialGrid } from '@/components/industrial-grid';
-import { Plus, Trash2, GripVertical, Image as ImageIcon, LogOut, Loader2, Link as LinkIcon, Boxes } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Image as ImageIcon, LogOut, Loader2, Link as LinkIcon, Boxes, Pencil } from 'lucide-react';
 import { addLink, deleteLink, updateLink, updateLinkOrder, logout, uploadIcon } from '../actions';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { LinkCard } from '@/components/link-card';
@@ -18,6 +18,65 @@ interface Link {
     order_index: number;
 }
 
+const compressImage = async (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new window.Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 1024;
+                const MAX_HEIGHT = 1024;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob(
+                    (blob) => {
+                        if (blob) {
+                            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                                type: 'image/jpeg',
+                                lastModified: Date.now(),
+                            });
+                            resolve(compressedFile);
+                        } else {
+                            resolve(file);
+                        }
+                    },
+                    'image/jpeg',
+                    0.85
+                );
+            };
+        };
+    });
+};
+
+const ensureProtocol = (url: string) => {
+    if (!url) return url;
+    if (!/^https?:\/\//i.test(url)) {
+        return `https://${url}`;
+    }
+    return url;
+};
+
 export default function AdminPanel({ initialLinks }: { initialLinks: Link[] }) {
     const router = useRouter();
     const [links, setLinks] = useState(initialLinks);
@@ -26,6 +85,11 @@ export default function AdminPanel({ initialLinks }: { initialLinks: Link[] }) {
     const [uploading, setUploading] = useState(false);
     const [newLink, setNewLink] = useState({ title: '', url: '', icon_url: '' });
     const [editingLink, setEditingLink] = useState<Link | null>(null);
+
+    // Sync local state when initialLinks prop changes (from router.refresh)
+    useEffect(() => {
+        setLinks(initialLinks);
+    }, [initialLinks]);
 
     const handleDragEnd = async (result: DropResult) => {
         if (!result.destination) return;
@@ -50,7 +114,7 @@ export default function AdminPanel({ initialLinks }: { initialLinks: Link[] }) {
         e.preventDefault();
         const formData = new FormData();
         formData.append('title', newLink.title);
-        formData.append('url', newLink.url);
+        formData.append('url', ensureProtocol(newLink.url));
         formData.append('icon_url', newLink.icon_url);
 
         startTransition(async () => {
@@ -69,7 +133,7 @@ export default function AdminPanel({ initialLinks }: { initialLinks: Link[] }) {
 
         const formData = new FormData();
         formData.append('title', editingLink.title);
-        formData.append('url', editingLink.url);
+        formData.append('url', ensureProtocol(editingLink.url));
         formData.append('icon_url', editingLink.icon_url || '');
 
         startTransition(async () => {
@@ -98,13 +162,16 @@ export default function AdminPanel({ initialLinks }: { initialLinks: Link[] }) {
 
         setUploading(true);
         try {
-            const url = await uploadIcon(file);
+            // Compress image if it's an image file
+            const compressedFile = await compressImage(file);
+            const url = await uploadIcon(compressedFile);
             if (editingLink) {
                 setEditingLink(prev => prev ? ({ ...prev, icon_url: url }) : null);
             } else {
                 setNewLink(prev => ({ ...prev, icon_url: url }));
             }
-        } catch {
+        } catch (err) {
+            console.error(err);
             alert('Upload failed');
         } finally {
             setUploading(false);
@@ -161,11 +228,14 @@ export default function AdminPanel({ initialLinks }: { initialLinks: Link[] }) {
 
                 {/* Add Link Form */}
                 <div className="mb-16">
-                    {!isAdding && !editingLink ? (
+                    {!isAdding && !editingLink && (
                         <motion.button
                             whileHover={{ scale: 1.01, borderColor: '#00A3FF' }}
                             whileTap={{ scale: 0.99 }}
-                            onClick={() => setIsAdding(true)}
+                            onClick={() => {
+                                setIsAdding(true);
+                                setEditingLink(null);
+                            }}
                             className="w-full py-6 border-2 border-dashed border-white/10 rounded-3xl bg-white/[0.02] text-white/40 hover:text-metal-blue transition-all flex flex-col items-center justify-center gap-3 font-bold uppercase tracking-[0.3em] text-xs"
                         >
                             <div className="p-4 rounded-full bg-metal-blue/10 border border-metal-blue/20">
@@ -173,7 +243,9 @@ export default function AdminPanel({ initialLinks }: { initialLinks: Link[] }) {
                             </div>
                             Initialize New Channel
                         </motion.button>
-                    ) : (
+                    )}
+
+                    {isAdding && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -200,9 +272,9 @@ export default function AdminPanel({ initialLinks }: { initialLinks: Link[] }) {
                                     <div className="space-y-2">
                                         <label className="text-[10px] text-white/40 uppercase font-mono tracking-widest">Destination URL</label>
                                         <input
-                                            type="url"
+                                            type="text"
                                             required
-                                            placeholder="https://..."
+                                            placeholder="synergy.metaltroop.cv"
                                             value={newLink.url}
                                             onChange={e => setNewLink(prev => ({ ...prev, url: e.target.value }))}
                                             className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-white focus:border-metal-blue outline-none transition-all font-mono text-sm placeholder:text-white/10"
@@ -316,12 +388,16 @@ export default function AdminPanel({ initialLinks }: { initialLinks: Link[] }) {
                                 onSubmit={handleUpdateLink}
                                 className="p-8 border border-metal-blue/30 bg-metal-charcoal/50 backdrop-blur-2xl rounded-3xl space-y-6 relative overflow-hidden group shadow-2xl shadow-metal-blue/10"
                             >
-                                <div className="absolute top-0 left-0 w-1 h-full bg-metal-blue" />
+                                <div className="absolute top-0 left-0 w-1 h-full bg-metal-blue shadow-[0_0_15px_rgba(0,163,255,0.5)]" />
+                                <div className="absolute top-0 left-0 w-full h-[1px] bg-metal-blue/20 animate-[scan_3s_linear_infinite]" />
                                 <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 rounded-lg bg-metal-blue/10 text-metal-blue">
-                                        <Plus className="w-4 h-4 rotate-45" />
+                                    <div className="p-2.5 rounded-xl bg-metal-blue/10 text-metal-blue border border-metal-blue/20">
+                                        <Pencil className="w-4 h-4" />
                                     </div>
                                     <h2 className="text-xl font-black text-white uppercase tracking-tight">Modify Channel</h2>
+                                    <div className="ml-auto px-2 py-0.5 rounded bg-metal-blue/10 border border-metal-blue/20">
+                                        <span className="text-[8px] font-mono text-metal-blue animate-pulse">MAINTENANCE_MODE</span>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-4">
@@ -338,7 +414,7 @@ export default function AdminPanel({ initialLinks }: { initialLinks: Link[] }) {
                                     <div className="space-y-2">
                                         <label className="text-[10px] text-white/40 uppercase font-mono tracking-widest">Destination URL</label>
                                         <input
-                                            type="url"
+                                            type="text"
                                             required
                                             value={editingLink.url}
                                             onChange={e => setEditingLink(prev => prev ? ({ ...prev, url: e.target.value }) : null)}
@@ -466,11 +542,14 @@ export default function AdminPanel({ initialLinks }: { initialLinks: Link[] }) {
 
                                                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
                                                         <button
-                                                            onClick={() => setEditingLink(link)}
+                                                            onClick={() => {
+                                                                setEditingLink(link);
+                                                                setIsAdding(false);
+                                                            }}
                                                             className="p-3 text-white/20 hover:text-white hover:bg-white/5 rounded-xl transition-all"
                                                             title="Reconfigure"
                                                         >
-                                                            <Plus className="w-5 h-5 rotate-45" />
+                                                            <Pencil className="w-5 h-5" />
                                                         </button>
                                                         <button
                                                             onClick={() => handleDelete(link.id)}
