@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { IndustrialGrid } from '@/components/industrial-grid';
-import { Plus, Trash2, GripVertical, Image as ImageIcon, LogOut, Loader2, Link as LinkIcon } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Image as ImageIcon, LogOut, Loader2, Link as LinkIcon, Boxes } from 'lucide-react';
 import { addLink, deleteLink, updateLink, updateLinkOrder, logout, uploadIcon } from '../actions';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { LinkCard } from '@/components/link-card';
@@ -142,9 +142,14 @@ export default function AdminPanel({ initialLinks }: { initialLinks: Link[] }) {
 
             <div className="max-w-3xl mx-auto">
                 <div className="flex justify-between items-center mb-12">
-                    <div>
-                        <h1 className="text-3xl font-black tracking-tight text-white">COMMAND CENTER</h1>
-                        <p className="text-metal-blue font-mono text-xs uppercase tracking-widest mt-1">Authorized Operator Panel</p>
+                    <div className="flex items-center gap-6">
+                        <div className="p-4 rounded-2xl bg-metal-blue/10 border border-metal-blue/20">
+                            <Boxes className="w-10 h-10 text-metal-blue" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-black tracking-tight text-white mb-0.5">COMMAND CENTER</h1>
+                            <p className="text-metal-blue font-mono text-[10px] uppercase tracking-[0.4em] opacity-50">Authorized Operator Panel</p>
+                        </div>
                     </div>
                     <button
                         onClick={() => logout()}
